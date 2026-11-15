@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env
+data/raw/*.yaml
+data/raw/*.yml
+data/raw/*.zip
+data/raw/*.csv
+data-*.zip
+data/processed/*
+!data/processed/.gitkeep
+!data/raw/.gitkeep
+!data/raw/sectors_template.csv
+*.sqlite3
+*.db

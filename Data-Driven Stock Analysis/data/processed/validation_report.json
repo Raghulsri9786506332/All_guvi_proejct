@@ -1,0 +1,18 @@
+{
+  "records_found": 14200,
+  "accepted_rows": 14200,
+  "rejected_rows": 0,
+  "duplicate_rows_removed": 0,
+  "rejection_reasons": {
+    "missing_symbol": 0,
+    "invalid_date": 0,
+    "invalid_price_or_volume": 0,
+    "non_positive_price": 0,
+    "negative_volume": 0,
+    "inconsistent_high_low": 0
+  },
+  "source": "C:\\Users\\raghu\\OneDrive\\New folder\\Guvi Auto code\\Data-Driven Stock Analysis\\data-20261104T043729Z-1-001.zip",
+  "source_files": 284,
+  "symbols_exported": 50,
+  "sector_mappings": 0
+}
