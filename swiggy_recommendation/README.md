@@ -1,6 +1,6 @@
 # 🍽️ Swiggy Restaurant Recommendation System
 
-A machine learning-powered recommendation system that suggests restaurants based on user preferences using cosine similarity and data preprocessing techniques.
+A machine learning-powered recommendation system that clusters restaurants with K-means and recommends options that match user preferences.
 
 ## 📋 Project Overview
 
@@ -14,15 +14,12 @@ This system analyzes Swiggy restaurant data and provides personalized recommenda
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.8+
+- Python 3.10+
 - pip or conda
 
 ### Installation
 
-1. **Navigate to project:**
-   ```bash
-   cd c:\Users\lenovo\swiggy_recommendation
-   ```
+1. **Open a terminal in this project folder** (the folder containing `app.py`).
 
 2. **Install dependencies:**
    ```bash
@@ -35,7 +32,7 @@ This system analyzes Swiggy restaurant data and provides personalized recommenda
    ```
    This generates:
    - `data/cleaned_data.csv` — Cleaned dataset without duplicates/missing values
-   - `data/encoded_data.csv` — One-Hot encoded features for similarity calculations
+   - `data/encoded_data.csv` — One-Hot encoded features for clustering
    - `models/encoder.pkl` — Serialized encoder for Streamlit
 
 4. **Launch the Streamlit app:**
@@ -55,7 +52,7 @@ swiggy_recommendation/
 │
 ├── src/                  # Core modules
 │   ├── preprocess.py     # Data cleaning & One-Hot encoding
-│   ├── recommend.py      # Cosine similarity recommendation engine
+│   ├── recommend.py      # K-means clustering recommendation engine
 │   └── utils.py          # Utility functions for UI
 │
 ├── data/                 # Data files
@@ -108,34 +105,37 @@ swiggy_recommendation/
 
 ### Step 2: Recommendation Engine (`src/recommend.py`)
 
-**Algorithm:** Cosine Similarity
+**Algorithm:** K-means clustering with distance-based ranking
 
 **How it works:**
-1. Loads preprocessed data and encoder
-2. Converts user input (city, cuisine, rating, cost, rating_count) to a feature vector
-3. Encodes categorical features using saved OneHotEncoder
-4. Calculates cosine similarity: `cos(θ) = (A·B) / (||A|| × ||B||)`
-5. Returns top-N most similar restaurants with similarity scores
-6. Maps encoded indices back to cleaned_data for user display
+1. Loads the cleaned data, aligned encoded data, and saved OneHotEncoder.
+2. Standardizes the three numeric features so cost and rating counts do not dominate clustering.
+3. Fits a reproducible K-means model (`random_state=42`), using up to 8 clusters (fewer when the dataset has fewer distinct rows).
+4. Encodes and scales the user's preferences, then assigns them to the nearest cluster.
+5. Applies the selected city, cuisine, rating, cost, and popularity filters to the original rows.
+6. Ranks eligible restaurants in the assigned cluster by distance from the user preferences. If that cluster has no eligible restaurants, it ranks all eligible rows instead.
+7. Maps the selected row indices back to `cleaned_data.csv` for display.
+
+The displayed match score is an inverse-distance ranking score (`1 / (1 + distance)`), not a probability.
 
 **Key Functions:**
 ```python
-load_data()              # Load cleaned_data, encoded_data, encoder
-build_user_vector()     # Convert user input to encoded feature vector
-get_recommendations()   # Calculate similarities and return top-N
+load_data()              # Load aligned data and fit/cache the K-means model
+build_user_vector()      # Encode and scale user preferences
+get_recommendations()    # Return top-N eligible restaurants from the assigned cluster
 ```
 
 **Example Calculation:**
 ```
 User Input: {city: "Bangalore", cuisine: "Biryani", rating: 4.5, cost: 250, rating_count: 300}
                               ↓
-            One-Hot Encode + Normalize
+            One-Hot Encode + Scale numeric features
                               ↓
             [numerical features] + [city encoding] + [cuisine encoding]
                               ↓
-            Cosine Similarity with all 60 restaurants
+            Assign to the nearest K-means cluster
                               ↓
-            Top 5 most similar restaurants (with scores 0.97, 0.95, 0.93...)
+            Rank eligible restaurants in that cluster by distance
 ```
 
 ### Step 3: Streamlit Application (`app.py`)
@@ -155,7 +155,7 @@ User Input: {city: "Bangalore", cuisine: "Biryani", rating: 4.5, cost: 250, rati
 - Rating slider (1.0 - 5.0 stars, default 3.5)
 - Cost slider (₹50 - ₹2000, default ₹500)
 - Min ratings count (number input, default 100)
-- Number of recommendations slider (3-20, default 5)
+- Number of recommendations slider (3-100, default 10)
 - "Find Restaurants" button
 
 **Main Display Area:**
@@ -168,9 +168,11 @@ User Input: {city: "Bangalore", cuisine: "Biryani", rating: 4.5, cost: 250, rati
   - Swiggy link
 - Expandable detailed table
 
-## 💡 How Similarities Are Calculated
+## 💡 How K-means Recommendations Work
 
-The system uses **Cosine Similarity** to measure how "close" each restaurant is to user preferences:
+The encoded restaurant features are clustered with K-means. The numeric columns
+(`rating`, `rating_count`, and `cost`) are standardized before clustering, while
+one-hot encoded city and cuisine values remain categorical indicators.
 
 ### Feature Encoding Example
 
@@ -191,28 +193,31 @@ After One-Hot Encoding:
 │ 4.2     │ 1          │ 0          │ 0           │ 1           │
 └─────────┴────────────┴────────────┴─────────────┴─────────────┴────────────┘
 
-Similarity = Cosine(User Vector, Restaurant Vector)
-           = (u1×r1 + u2×r2 + ... + un×rn) / (||u|| × ||r||)
+The user's preferences are encoded and scaled in the same way, then assigned to
+the nearest cluster center. Eligible restaurants from that cluster are ranked
+by Euclidean distance to the preference vector. A smaller distance means a
+closer match; the displayed match score is `1 / (1 + distance)`.
 ```
 
-## 📊 Sample Data Statistics
+## 📊 Dataset and Clustering Check
 
-The included sample dataset (`data/swiggy.csv`) contains:
-- **60 restaurants** across **7 cities**
-- **Bangalore, Chennai, Delhi, Mumbai, Hyderabad, Kolkata, Pune**
-- **20+ cuisine types**
-- **Rating range:** 4.1 - 4.6 stars
-- **Cost range:** ₹80 - ₹600 per person
-- **Popularity range:** 80 - 920+ ratings
+The included dataset (`data/swiggy.csv`) currently contains:
+- **3,600 restaurants** across **20 cities**
+- **18 cuisine types**
+- **Rating range:** 3.8 - 4.9 stars
+- **Cost range:** ₹60 - ₹750 per person
+- **Popularity range:** 50 - 2,490 ratings
 
 After preprocessing:
 - **0 duplicates** removed
 - **0 rows dropped** (all data valid)
-- **31 encoded columns** (3 numerical + 28 one-hot encoded)
+- **41 encoded columns** (3 numerical + 38 one-hot encoded)
+- **3,600 rows** in both cleaned and encoded datasets
 
-
-
-
+With the current features and 8 clusters, the sampled silhouette score
+(500 rows, random seed 42) is approximately **0.10**. This indicates overlapping
+groups, so interpret K-means clusters as broad recommendation neighborhoods,
+not sharply separated restaurant segments.
 
 
 

@@ -1,9 +1,10 @@
-import streamlit as st
-import pandas as pd
+import os
 import sys
 
-# Add src folder to Python path
-sys.path.append("src")
+import pandas as pd
+import streamlit as st
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
 
 from recommend import get_recommendations
 from utils import get_unique_cities, get_unique_cuisines
@@ -28,7 +29,7 @@ st.markdown("""
 </h1>
 
 <p style='text-align:center;color:gray;'>
-Discover the best restaurants based on your preferences
+Discover restaurants with K-Means clustering and your preferences
 </p>
 
 <hr>

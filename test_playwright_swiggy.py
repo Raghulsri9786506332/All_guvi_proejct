@@ -81,10 +81,13 @@ async def run_tests():
         # TC-SW-005: Find Restaurants button exists
         # ----------------------------------------------------------------
         try:
-            btn = page.locator('[data-testid="stSidebar"] button')
+            btn = page.locator('[data-testid="stSidebar"] button').filter(
+                has_text="Find Restaurants"
+            )
             count = await btn.count()
-            assert count >= 1, "No button found in sidebar"
-            print(f"✅ TC-SW-005 PASS: 'Find Restaurants' button found ({count} button(s))")
+            assert count == 1, f"Expected one 'Find Restaurants' button, found {count}"
+            await expect(btn).to_be_visible()
+            print("✅ TC-SW-005 PASS: 'Find Restaurants' button found")
             RESULTS.append(("TC-SW-005", "PASS", "Button found in sidebar"))
         except Exception as e:
             print(f"❌ TC-SW-005 FAIL: {e}")
@@ -94,7 +97,10 @@ async def run_tests():
         # TC-SW-006: Click Find Restaurants and check results
         # ----------------------------------------------------------------
         try:
-            btn = page.locator('[data-testid="stSidebar"] button').first
+            btn = page.locator('[data-testid="stSidebar"] button').filter(
+                has_text="Find Restaurants"
+            )
+            await expect(btn).to_be_visible(timeout=10000)
             await btn.click()
             await page.wait_for_timeout(5000)
             body_text = await page.inner_text("body")
